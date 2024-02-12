@@ -74,7 +74,7 @@ app.post(
 
       const { limite, saldo } = result
 
-      const novoSaldo = saldo + (tipo === 'c' ? -valor : valor)
+      const novoSaldo = saldo + (tipo === 'c' ? +valor : -valor)
 
       if (Math.abs(novoSaldo) > limite) return response(422)
 

@@ -32,8 +32,8 @@ describe('Cliente Extrato', () => {
       const { status, body } = await request().get('/clientes/1/extrato')
 
       const total = fakeTransacoes.reduce((acc, t) => {
-        if (t.tipo === 'c') return acc - t.valor
-        return acc + t.valor
+        if (t.tipo === 'c') return acc + t.valor
+        return acc - t.valor
       }, 0)
 
       expect(body).toEqual({

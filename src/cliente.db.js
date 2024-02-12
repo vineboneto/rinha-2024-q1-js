@@ -7,8 +7,8 @@ export async function loadSaldo(clienteId, sql) {
       select
         sum(
           case
-            when tipo = 'c' then -valor
-            when tipo = 'd' then valor
+            when tipo = 'c' then valor
+            when tipo = 'd' then -valor
           end
         ) as saldo
       from transacoes

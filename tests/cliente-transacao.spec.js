@@ -126,7 +126,7 @@ describe('Cliente Transação', () => {
 
       expect(Number(result.saldo)).toEqual(100)
       expect(status).toBe(200)
-      expect(body).toEqual({ limite: 100000, saldo: -100 })
+      expect(body).toEqual({ limite: 100000, saldo: 100 })
     })
 
     it('deve retornar 200 se a transacao foi criada do tipo debito', async () => {
@@ -143,7 +143,7 @@ describe('Cliente Transação', () => {
 
       expect(Number(result.saldo)).toEqual(-100)
       expect(status).toBe(200)
-      expect(body).toEqual({ limite: 100000, saldo: 100 })
+      expect(body).toEqual({ limite: 100000, saldo: -100 })
     })
 
     it('deve retonrar 422 se o saldo exceder o limite na terceira request', async () => {
@@ -152,21 +152,21 @@ describe('Cliente Transação', () => {
         .send({
           valor: 50000,
           descricao: 'Teste',
-          tipo: 'c',
+          tipo: 'd',
         })
       const { status: status2, body: body2 } = await request()
         .post('/clientes/1/transacoes')
         .send({
           valor: 50000,
           descricao: 'Teste',
-          tipo: 'c',
+          tipo: 'd',
         })
       const { status: status3 } = await request()
         .post('/clientes/1/transacoes')
         .send({
           valor: 1,
           descricao: 'Teste',
-          tipo: 'c',
+          tipo: 'd',
         })
 
       expect(status1).toBe(200)
