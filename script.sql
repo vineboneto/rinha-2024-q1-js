@@ -14,7 +14,7 @@ CREATE TABLE transacoes (
   tipo tipo_movimentacao NOT NULL,
   valor INTEGER NOT NULL,
   descricao VARCHAR(10) NOT NULL,
-  realizado_em TIMESTAMP NOT NULL DEFAULT NOW()
+  realizada_em TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 DO $$

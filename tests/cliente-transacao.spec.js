@@ -1,5 +1,4 @@
-import sql from '../src/db.js'
-import { request } from './setup.js'
+import { request, sql } from './setup.js'
 
 describe('Cliente Transação', () => {
   describe('(400) POST /clientes/:id/transacoes', () => {
@@ -109,6 +108,10 @@ describe('Cliente Transação', () => {
       await sql`delete from transacoes`
     })
 
+    afterAll(async () => {
+      await sql`delete from transacoes`
+    })
+
     it('deve retornar 200 se a transacao foi criada do tipo credito', async () => {
       const { status, body } = await request()
         .post('/clientes/1/transacoes')
@@ -120,7 +123,6 @@ describe('Cliente Transação', () => {
 
       const [result] =
         await sql`select sum(case when tipo = 'c' then valor else -valor end) as saldo from transacoes where id_cliente = 1`
-      await sql`delete from transacoes`
 
       expect(Number(result.saldo)).toEqual(100)
       expect(status).toBe(200)

@@ -1,6 +1,6 @@
 import express from 'express'
 import { uuidv7 } from 'uuidv7'
-import sql from './db.js'
+import { sql } from './db.js'
 import * as cliente from './cliente.db.js'
 
 const app = express()
@@ -18,6 +18,33 @@ app.get(
   '/',
   safe((req, res) => {
     return res.json('Hello World')
+  })
+)
+
+app.get(
+  '/clientes/:id/extrato',
+  safe(async (req, res) => {
+    const response = (status, body = undefined) => res.status(status).json(body)
+
+    const id = parseInt(req.params.id)
+
+    if (isNaN(id)) return response(400)
+
+    const [saldo, transacoes] = await Promise.all([
+      cliente.loadSaldo(id, sql),
+      cliente.loadExtrato(id, sql),
+    ])
+
+    if (!saldo) return response(404)
+
+    return response(200, {
+      saldo: {
+        total: saldo.saldo,
+        limite: saldo.limite,
+        data_extrato: new Date(),
+      },
+      ultimas_transacoes: transacoes,
+    })
   })
 )
 
@@ -40,13 +67,12 @@ app.post(
 
     if (!['c', 'd'].includes(tipo)) return response(400)
 
-    const output = await sql.begin(async (tx) => {
-      const [limite, saldo] = await Promise.all([
-        cliente.loadLimite(id, tx),
-        cliente.loadSaldo(id, tx),
-      ])
+    return sql.begin(async (tx) => {
+      const result = await cliente.loadSaldo(id, tx)
 
-      if ([limite, saldo].includes(null)) return response(404)
+      if (!result) return response(404)
+
+      const { limite, saldo } = result
 
       const novoSaldo = saldo + (tipo === 'c' ? -valor : valor)
 
@@ -66,8 +92,6 @@ app.post(
 
       return response(200, body)
     })
-
-    return output
   })
 )
 
