@@ -10,7 +10,7 @@ CREATE TABLE clientes (
 
 CREATE TABLE transacoes (
   id  UUID PRIMARY KEY,
-  id_cliente INTEGER NOT NULL,
+  id_cliente INTEGER NOT NULL REFERENCES clientes(id),
   tipo tipo_movimentacao NOT NULL,
   valor INTEGER NOT NULL,
   descricao VARCHAR(10) NOT NULL,

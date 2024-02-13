@@ -5,6 +5,7 @@
   "description": "Rinha Backend (2024)",
   "main": "index.js",
   "scripts": {
+    "start": "node src/main.js",
     "test:setup": "node --experimental-vm-modules node_modules/jest/bin/jest.js --passWithNoTests --noStackTrace --runInBand --detectOpenHandles",
     "test": "pnpm run test:setup - --watch -c jest.config.mjs"
   },

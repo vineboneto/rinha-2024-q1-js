@@ -37,7 +37,7 @@ export async function loadExtrato(input, sql) {
       tr.valor,
       tr.descricao,
       tr.tipo,
-      tr.realizada_em
+      tr.realizada_em AT TIME ZONE 'UTC' as realizada_em
     from transacoes tr
     order by tr.realizada_em desc limit 10
   `

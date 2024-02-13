@@ -1,0 +1,15 @@
+@api_url=http://localhost:9999
+
+### Extrato
+GET {{api_url}}/clientes/1/extrato HTTP/1.1
+content-type: application/json
+
+### Transação
+POST {{api_url}}/clientes/1/transacoes HTTP/1.1
+content-type: application/json
+
+{
+  "valor": 100,
+  "tipo": "d",
+  "descricao": "Pag. luz"
+}

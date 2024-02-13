@@ -1,7 +1,9 @@
 import { app } from './app.js'
 
-const server = app.listen(process.env.PORT || 3000, () => {
-  console.log(`Server is running at pid: ${process.pid}...`)
+const port = process.env.PORT || 3000
+
+const server = app.listen(port, () => {
+  console.log(`Server is running at pid: ${process.pid}, port: ${port}...`)
 })
 
 process.on('SIGTERM', () => {

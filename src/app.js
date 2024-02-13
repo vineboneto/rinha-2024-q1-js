@@ -21,33 +21,6 @@ app.get(
   })
 )
 
-app.get(
-  '/clientes/:id/extrato',
-  safe(async (req, res) => {
-    const response = (status, body = undefined) => res.status(status).json(body)
-
-    const id = parseInt(req.params.id)
-
-    if (isNaN(id)) return response(400)
-
-    const [saldo, transacoes] = await Promise.all([
-      cliente.loadSaldo(id, sql),
-      cliente.loadExtrato(id, sql),
-    ])
-
-    if (!saldo) return response(404)
-
-    return response(200, {
-      saldo: {
-        total: saldo.saldo,
-        limite: saldo.limite,
-        data_extrato: new Date(),
-      },
-      ultimas_transacoes: transacoes,
-    })
-  })
-)
-
 app.post(
   '/clientes/:id/transacoes',
   safe(async (req, res) => {
@@ -91,6 +64,33 @@ app.post(
       const body = { limite, saldo: novoSaldo }
 
       return response(200, body)
+    })
+  })
+)
+
+app.get(
+  '/clientes/:id/extrato',
+  safe(async (req, res) => {
+    const response = (status, body = undefined) => res.status(status).json(body)
+
+    const id = parseInt(req.params.id)
+
+    if (isNaN(id)) return response(400)
+
+    const [saldo, transacoes] = await Promise.all([
+      cliente.loadSaldo(id, sql),
+      cliente.loadExtrato(id, sql),
+    ])
+
+    if (!saldo) return response(404)
+
+    return response(200, {
+      saldo: {
+        total: saldo.saldo,
+        limite: saldo.limite,
+        data_extrato: new Date(),
+      },
+      ultimas_transacoes: transacoes,
     })
   })
 )
