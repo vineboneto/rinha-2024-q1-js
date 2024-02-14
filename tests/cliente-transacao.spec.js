@@ -1,6 +1,10 @@
 import { request, sql } from './setup.js'
 
 describe('Cliente Transação', () => {
+  afterAll(() => {
+    sql.end()
+  })
+
   describe('(400) POST /clientes/:id/transacoes', () => {
     it('deve retornar 400 se o id eh invalido', async () => {
       const { status } = await request().post('/clientes/a/transacoes').send({
@@ -97,7 +101,7 @@ describe('Cliente Transação', () => {
       const { status } = await request().post('/clientes/1/transacoes').send({
         valor: 1000001,
         descricao: 'Teste',
-        tipo: 'c',
+        tipo: 'd',
       })
       expect(status).toBe(422)
     })
@@ -106,10 +110,12 @@ describe('Cliente Transação', () => {
   describe('(200) POST /clientes/:id/transacoes', () => {
     beforeEach(async () => {
       await sql`delete from transacoes`
+      await sql`update clientes set saldo = 0`
     })
 
     afterAll(async () => {
       await sql`delete from transacoes`
+      await sql`update clientes set saldo = 0`
     })
 
     it('deve retornar 200 se a transacao foi criada do tipo credito', async () => {

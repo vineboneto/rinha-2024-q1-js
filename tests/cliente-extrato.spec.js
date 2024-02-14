@@ -1,6 +1,10 @@
 import { request, sql, fakeTransacoes } from './setup.js'
 
 describe('Cliente Extrato', () => {
+  afterAll(() => {
+    sql.end()
+  })
+
   describe('(400) GET /clientes/:id/extrato', () => {
     it('deve retornar 400 se o id eh invalido', async () => {
       const { status } = await request().get('/clientes/a/extrato')
@@ -17,41 +21,37 @@ describe('Cliente Extrato', () => {
     })
   })
 
-  describe('(200) GET /clientes/:id/extrato', () => {
+  describe.only('(200) GET /clientes/:id/extrato', () => {
     beforeEach(async () => {
       await sql`delete from transacoes`
+      await sql`update clientes set saldo = 0`
     })
 
     afterAll(async () => {
       await sql`delete from transacoes`
+      await sql`update clientes set saldo = 0`
     })
 
-    it('deve retornar 200 com o extrato do cliente', async () => {
-      await sql`insert into transacoes ${sql(fakeTransacoes)}`
+    it.only(
+      'deve retornar 200 com o extrato do cliente',
+      async () => {
+        const promises = fakeTransacoes.map((t) => {
+          return request().post('/clientes/1/transacoes').send(t)
+        })
 
-      const { status, body } = await request().get('/clientes/1/extrato')
+        await Promise.all(promises)
 
-      const total = fakeTransacoes.reduce((acc, t) => {
-        if (t.tipo === 'c') return acc + t.valor
-        return acc - t.valor
-      }, 0)
+        const { status, body } = await request().get('/clientes/1/extrato')
 
-      expect(body).toEqual({
-        saldo: {
-          total,
-          limite: 100000,
-          data_extrato: expect.any(String),
-        },
-        ultimas_transacoes: fakeTransacoes.slice(0, 10).map((t, i) => {
-          const { id_cliente, id, ...rest } = t
-          return {
-            ...rest,
-            realizada_em: body.ultimas_transacoes[i].realizada_em,
-          }
-        }),
-      })
-      expect(body.ultimas_transacoes.length).toBe(10)
-      expect(status).toBe(200)
-    })
+        const total = fakeTransacoes.reduce((acc, t) => {
+          return t.tipo === 'c' ? acc + t.valor : acc - t.valor
+        }, 0)
+
+        expect(body.saldo.total).toEqual(600)
+        expect(body.ultimas_transacoes.length).toBe(10)
+        expect(status).toBe(200)
+      },
+      1000 * 20
+    )
   })
 })

@@ -1,26 +1,9 @@
-import { uuidv7 } from 'uuidv7'
 import { safeParseInt } from './utils.js'
 
-export async function loadSaldo(clienteId, sql) {
+export async function loadCliente(clienteId, sql, { forUpdate = false } = {}) {
   const [result] = await sql`
-    with saldo as (
-      select
-        sum(
-          case
-            when tipo = 'c' then valor
-            when tipo = 'd' then -valor
-          end
-        ) as saldo
-      from transacoes
-      where id_cliente = ${clienteId}
-    ),
-    limite as (
-      select limite from clientes where id = ${clienteId}
-    )
-    select
-      saldo.saldo,
-      limite.limite
-    from saldo, limite
+    select limite, saldo from clientes where id = ${clienteId} 
+    ${forUpdate ? sql`for update` : sql``}
   `
 
   if (!result) return null
@@ -31,7 +14,7 @@ export async function loadSaldo(clienteId, sql) {
   }
 }
 
-export async function loadExtrato(input, sql) {
+export async function loadExtrato(clienteId, sql) {
   const result = await sql`
     select 
       tr.valor,
@@ -39,12 +22,21 @@ export async function loadExtrato(input, sql) {
       tr.tipo,
       tr.realizada_em AT TIME ZONE 'UTC' as realizada_em
     from transacoes tr
+    where tr.id_cliente = ${clienteId}
     order by tr.realizada_em desc limit 10
   `
 
   if (!result) return null
 
   return result
+}
+
+export async function updateSaldoCliente(input, sql) {
+  await sql`
+    update clientes
+    set saldo = ${input.saldo}
+    where id = ${input.clienteId}
+  `
 }
 
 export async function createTransacao(input, sql) {

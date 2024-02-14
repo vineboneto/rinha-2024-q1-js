@@ -1,7 +1,14 @@
 import express from 'express'
-import { uuidv7 } from 'uuidv7'
-import { sql } from './db.js'
-import * as cliente from './cliente.db.js'
+import sql from './db.js'
+import * as clienteRepo from './cliente.db.js'
+
+class ValidationError extends Error {
+  constructor(status = 400, message = undefined) {
+    super(message)
+    this.status = status
+    this.name = 'ValidationError'
+  }
+}
 
 const app = express()
 app.use(express.json())
@@ -40,31 +47,35 @@ app.post(
 
     if (!['c', 'd'].includes(tipo)) return response(400)
 
-    return sql.begin(async (tx) => {
-      const result = await cliente.loadSaldo(id, tx)
+    const output = await sql.begin(async (tx) => {
+      const cliente = await clienteRepo.loadCliente(id, tx, {
+        forUpdate: true,
+      })
 
-      if (!result) return response(404)
+      if (!cliente) return response(404)
 
-      const { limite, saldo } = result
+      const { limite, saldo } = cliente
 
       const novoSaldo = saldo + (tipo === 'c' ? +valor : -valor)
 
       if (Math.abs(novoSaldo) > limite) return response(422)
 
       const novaTransacao = {
-        id: uuidv7(),
         valor,
         descricao,
         tipo,
         id_cliente: id,
       }
 
-      await cliente.createTransacao(novaTransacao, tx)
+      await Promise.all([
+        clienteRepo.updateSaldoCliente({ clienteId: id, saldo: novoSaldo }, tx),
+        clienteRepo.createTransacao(novaTransacao, tx),
+      ])
 
-      const body = { limite, saldo: novoSaldo }
-
-      return response(200, body)
+      return response(200, { limite, saldo: novoSaldo })
     })
+
+    return output
   })
 )
 
@@ -77,17 +88,17 @@ app.get(
 
     if (isNaN(id)) return response(400)
 
-    const [saldo, transacoes] = await Promise.all([
-      cliente.loadSaldo(id, sql),
-      cliente.loadExtrato(id, sql),
+    const [cliente, transacoes] = await Promise.all([
+      clienteRepo.loadCliente(id, sql),
+      clienteRepo.loadExtrato(id, sql),
     ])
 
-    if (!saldo) return response(404)
+    if (!cliente) return response(404)
 
     return response(200, {
       saldo: {
-        total: saldo.saldo,
-        limite: saldo.limite,
+        total: cliente.saldo,
+        limite: cliente.limite,
         data_extrato: new Date(),
       },
       ultimas_transacoes: transacoes,

@@ -11,9 +11,6 @@ dependencies:
   postgres:
     specifier: ^3.4.3
     version: 3.4.3
-  uuidv7:
-    specifier: ^0.6.3
-    version: 0.6.3
 
 devDependencies:
   babel-jest:
@@ -2695,11 +2692,6 @@ packages:
   /utils-merge@1.0.1:
     resolution: {integrity: sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA==}
     engines: {node: '>= 0.4.0'}
-    dev: false
-
-  /uuidv7@0.6.3:
-    resolution: {integrity: sha512-zV3eW2NlXTsun/aJ7AixxZjH/byQcH/r3J99MI0dDEkU2cJIBJxhEWUHDTpOaLPRNhebPZoeHuykYREkI9HafA==}
-    hasBin: true
     dev: false
 
   /v8-to-istanbul@9.2.0:
