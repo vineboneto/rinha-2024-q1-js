@@ -1,3 +1,6 @@
+ALTER SYSTEM SET max_connections = 1000;
+ALTER SYSTEM SET TIMEZONE TO 'UTC';
+
 CREATE TYPE tipo_movimentacao AS ENUM ('c', 'd');
 
 CREATE TABLE clientes (
@@ -13,8 +16,10 @@ CREATE TABLE transacoes (
   tipo tipo_movimentacao NOT NULL,
   valor INTEGER NOT NULL,
   descricao VARCHAR(10) NOT NULL,
-  realizada_em TIMESTAMP NOT NULL DEFAULT NOW()
+  realizada_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX idx_ultima_transacoes_por_cliente ON transacoes (id_cliente, realizada_em DESC);
 
 DO $$
 BEGIN

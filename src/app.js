@@ -3,13 +3,14 @@ import sql from './db.js'
 import * as clienteRepo from './cliente.db.js'
 
 const app = express()
+
 app.use(express.json())
 
 const safe = (fn) => async (req, res) => {
   try {
     return fn(req, res)
   } catch (err) {
-    return res.status(500).send()
+    return res.status(500).json()
   }
 }
 
@@ -27,23 +28,26 @@ app.post(
 
     const input = { ...req.params, ...req.body }
 
-    const id = parseInt(input.id?.trim())
-    const valor = input.valor
+    const id = parseInt(input?.id?.trim())
+    const valor = input?.valor
     const descricao = input.descricao?.trim()
     const tipo = input.tipo?.trim()
 
     const isValid =
+      !isNaN(valor) &&
       Number.isSafeInteger(valor) &&
       valor > 0 &&
       tipo?.length === 1 &&
-      ['c', 'd'].includes(tipo) &&
+      (tipo === 'c' || tipo === 'd') &&
       descricao?.length > 0 &&
       descricao?.length <= 10
 
     if (!isValid) return response(400)
 
-    const output = sql.begin(async (tx) => {
-      const cliente = await clienteRepo.loadCliente(id, tx)
+    const novaTransacao = { valor, descricao, tipo, id_cliente: id }
+
+    const output = await sql.begin(async (tx) => {
+      const cliente = await clienteRepo.loadCliente(id, tx, { forUpdate: true })
 
       if (!cliente) return response(404)
 
@@ -51,16 +55,9 @@ app.post(
 
       const isDebito = tipo === 'd'
 
-      const novoSaldo = saldo + (isDebito ? -valor : valor)
+      const novoSaldo = isDebito ? saldo - valor : saldo + valor
 
-      if (isDebito && Math.abs(novoSaldo) > limite) return response(422)
-
-      const novaTransacao = {
-        valor,
-        descricao,
-        tipo,
-        id_cliente: id,
-      }
+      if (isDebito && novoSaldo + limite < 0) return response(422)
 
       await Promise.all([
         clienteRepo.updateSaldoCliente({ clienteId: id, saldo: novoSaldo }, tx),
@@ -79,23 +76,24 @@ app.get(
   safe(async (req, res) => {
     const response = (status, body = undefined) => res.status(status).json(body)
 
-    const id = parseInt(req.params.id)
+    const id = parseInt(req.params?.id?.trim())
 
-    if (!Number.isSafeInteger(id)) return response(404)
+    if (isNaN(id)) return response(400)
 
-    const extrato = await clienteRepo.loadExtrato(id, sql)
+    const [extrato, cliente] = await Promise.all([
+      clienteRepo.loadExtrato(id, sql),
+      clienteRepo.loadCliente(id, sql),
+    ])
 
-    if (!extrato || extrato.length === 0) return response(404)
+    if (!cliente) return response(404)
 
     return response(200, {
       saldo: {
-        total: extrato[0].saldo,
-        limite: extrato[0].limite,
+        total: cliente.saldo,
+        limite: cliente.limite,
         data_extrato: new Date(),
       },
-      ultimas_transacoes: extrato.map(({ saldo, limite, ...rest }) => ({
-        ...rest,
-      })),
+      ultimas_transacoes: extrato,
     })
   })
 )

@@ -2,10 +2,10 @@ import postgres from 'postgres'
 
 class ConnectionDB {
   static instance = null
-  #sql = null
+  static sql = null
 
   constructor() {
-    this.#sql = postgres({
+    ConnectionDB.sql = postgres({
       port: 5432,
       database: 'rinha',
       password: '1234',
@@ -28,8 +28,8 @@ class ConnectionDB {
    * @returns {import('postgres').Sql}
    * */
   sql() {
-    if (!this.#sql) throw new Error('ConnectionDB not initialized')
-    return this.#sql
+    if (!ConnectionDB.sql) throw new Error('ConnectionDB not initialized')
+    return ConnectionDB.sql
   }
 }
 
