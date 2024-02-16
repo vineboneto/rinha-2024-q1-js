@@ -13,8 +13,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.17"
-          memory: "10MB"
+          cpus: "0.2"
+          memory: "50MB"
   api01: &api
     # Lembre-se de que seu serviço HTTP deve estar hospedado num repositório
     # publicamente acessível! Ex.: hub.docker.com
@@ -32,13 +32,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.6"
-          memory: "200MB"
+          cpus: "0.2"
+          memory: "100MB"
   api02:
     <<: *api 
     hostname: api02
-    environment:
-      - DB_HOSTNAME=db
     ports:
       - 8082:3000
   db:
@@ -54,8 +52,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.13"
-          memory: "140MB"
+          cpus: "0.8"
+          memory: "300MB"
 
 networks:
   default:

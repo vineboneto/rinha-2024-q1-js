@@ -8,8 +8,8 @@ class ConnectionDB {
     this.#sql = postgres({
       port: 5432,
       database: 'rinha',
-      pass: '1234',
-      user: 'postgres',
+      password: '1234',
+      username: 'postgres',
       host: process.env.DB_HOSTNAME || 'localhost',
     })
   }
@@ -19,9 +19,9 @@ class ConnectionDB {
    * */
   static self() {
     if (!ConnectionDB.instance) {
-      this.instance = new ConnectionDB()
+      ConnectionDB.instance = new ConnectionDB()
     }
-    return this.instance
+    return ConnectionDB.instance
   }
 
   /**

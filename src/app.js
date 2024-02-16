@@ -2,14 +2,6 @@ import express from 'express'
 import sql from './db.js'
 import * as clienteRepo from './cliente.db.js'
 
-class ValidationError extends Error {
-  constructor(status = 400, message = undefined) {
-    super(message)
-    this.status = status
-    this.name = 'ValidationError'
-  }
-}
-
 const app = express()
 app.use(express.json())
 
@@ -35,30 +27,33 @@ app.post(
 
     const input = { ...req.params, ...req.body }
 
-    const id = parseInt(input.id)
-    const valor = parseInt(input.valor)
-    const descricao = input.descricao
-    const tipo = input.tipo
+    const id = parseInt(input.id?.trim())
+    const valor = input.valor
+    const descricao = input.descricao?.trim()
+    const tipo = input.tipo?.trim()
 
-    if (isNaN(id)) return response(400)
-    if (isNaN(valor) || valor < 1) return response(400)
-    if (!descricao || descricao.length < 1 || descricao.length > 10)
-      return response(400)
+    const isValid =
+      Number.isSafeInteger(valor) &&
+      valor > 0 &&
+      tipo?.length === 1 &&
+      ['c', 'd'].includes(tipo) &&
+      descricao?.length > 0 &&
+      descricao?.length <= 10
 
-    if (!['c', 'd'].includes(tipo)) return response(400)
+    if (!isValid) return response(400)
 
-    const output = await sql.begin(async (tx) => {
-      const cliente = await clienteRepo.loadCliente(id, tx, {
-        forUpdate: true,
-      })
+    const output = sql.begin(async (tx) => {
+      const cliente = await clienteRepo.loadCliente(id, tx)
 
       if (!cliente) return response(404)
 
       const { limite, saldo } = cliente
 
-      const novoSaldo = saldo + (tipo === 'c' ? +valor : -valor)
+      const isDebito = tipo === 'd'
 
-      if (Math.abs(novoSaldo) > limite) return response(422)
+      const novoSaldo = saldo + (isDebito ? -valor : valor)
+
+      if (isDebito && Math.abs(novoSaldo) > limite) return response(422)
 
       const novaTransacao = {
         valor,
@@ -86,24 +81,23 @@ app.get(
 
     const id = parseInt(req.params.id)
 
-    if (isNaN(id)) return response(400)
+    if (!Number.isSafeInteger(id)) return response(404)
 
-    const [cliente, transacoes] = await Promise.all([
-      clienteRepo.loadCliente(id, sql),
-      clienteRepo.loadExtrato(id, sql),
-    ])
+    const extrato = await clienteRepo.loadExtrato(id, sql)
 
-    if (!cliente) return response(404)
+    if (!extrato || extrato.length === 0) return response(404)
 
     return response(200, {
       saldo: {
-        total: cliente.saldo,
-        limite: cliente.limite,
+        total: extrato[0].saldo,
+        limite: extrato[0].limite,
         data_extrato: new Date(),
       },
-      ultimas_transacoes: transacoes,
+      ultimas_transacoes: extrato.map(({ saldo, limite, ...rest }) => ({
+        ...rest,
+      })),
     })
   })
 )
 
-export { app }
+export default app

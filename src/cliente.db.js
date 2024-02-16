@@ -1,9 +1,9 @@
 import { safeParseInt } from './utils.js'
 
-export async function loadCliente(clienteId, sql, { forUpdate = false } = {}) {
+export async function loadCliente(clienteId, sql) {
   const [result] = await sql`
     select limite, saldo from clientes where id = ${clienteId} 
-    ${forUpdate ? sql`for update` : sql``}
+    for update
   `
 
   if (!result) return null
@@ -20,8 +20,11 @@ export async function loadExtrato(clienteId, sql) {
       tr.valor,
       tr.descricao,
       tr.tipo,
-      tr.realizada_em AT TIME ZONE 'UTC' as realizada_em
+      tr.realizada_em AT TIME ZONE 'UTC' as realizada_em,
+      c.saldo,
+      c.limite
     from transacoes tr
+    join clientes c on c.id = tr.id_cliente 
     where tr.id_cliente = ${clienteId}
     order by tr.realizada_em desc limit 10
   `
@@ -32,7 +35,7 @@ export async function loadExtrato(clienteId, sql) {
 }
 
 export async function updateSaldoCliente(input, sql) {
-  await sql`
+  return sql`
     update clientes
     set saldo = ${input.saldo}
     where id = ${input.clienteId}
@@ -40,5 +43,5 @@ export async function updateSaldoCliente(input, sql) {
 }
 
 export async function createTransacao(input, sql) {
-  await sql`insert into transacoes ${sql(input)}`
+  return sql`insert into transacoes ${sql(input)}`
 }
