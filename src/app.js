@@ -28,20 +28,21 @@ app.post(
 
     const input = { ...req.params, ...req.body }
 
-    const id = parseInt(input?.id?.trim())
-    const valor = parseInt(input?.valor)
-    const descricao = input.descricao?.trim()
-    const tipo = input.tipo?.trim()
+    const id = Number(input?.id)
+    const valor = Number(input?.valor)
+    const descricao = input.descricao
+    const tipo = input.tipo
 
     const isValid =
-      !isNaN(valor) &&
+      Number.isInteger(id) &&
+      Number.isInteger(valor) &&
       valor > 0 &&
-      !!tipo &&
       (tipo === 'c' || tipo === 'd') &&
-      !!descricao &&
+      typeof descricao === 'string' &&
+      descricao?.length >= 1 &&
       descricao?.length <= 10
 
-    if (!isValid) return response(400)
+    if (!isValid) return response(422)
 
     const cliente = await clienteRepo.loadCliente(id, sql)
 
@@ -54,11 +55,13 @@ app.post(
     const [result] = await sql`
       update clientes
       set saldo = saldo + ${valorIncrementado}
-      where id = ${id} and saldo + ${valorIncrementado * -1} <= limite
-      returning saldo
+      where id = ${id} and (saldo + ${valorIncrementado}) * -1 <= limite
+      returning saldo, limite
     `
 
-    if (!result) return response(422)
+    if (!result) {
+      return response(422)
+    }
 
     await sql`insert into transacoes ${sql({
       id_cliente: id,
@@ -76,18 +79,18 @@ app.get(
   safe(async (req, res) => {
     const response = (status, body = undefined) => res.status(status).json(body)
 
-    const id = parseInt(req.params?.id?.trim())
+    const id = Number(req.params?.id)
 
-    if (isNaN(id)) return response(400)
+    if (!Number.isInteger(id)) {
+      return response(422)
+    }
 
     const [extrato, cliente] = await Promise.all([
       clienteRepo.loadExtrato(id, sql),
       clienteRepo.loadCliente(id, sql),
     ])
 
-    if (!cliente) {
-      return response(404)
-    }
+    if (!cliente) return response(404)
 
     return response(200, {
       saldo: {
