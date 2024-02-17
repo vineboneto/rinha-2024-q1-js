@@ -29,45 +29,46 @@ app.post(
     const input = { ...req.params, ...req.body }
 
     const id = parseInt(input?.id?.trim())
-    const valor = input?.valor
+    const valor = parseInt(input?.valor)
     const descricao = input.descricao?.trim()
     const tipo = input.tipo?.trim()
 
     const isValid =
       !isNaN(valor) &&
-      Number.isSafeInteger(valor) &&
       valor > 0 &&
-      tipo?.length === 1 &&
+      !!tipo &&
       (tipo === 'c' || tipo === 'd') &&
-      descricao?.length > 0 &&
+      !!descricao &&
       descricao?.length <= 10
 
     if (!isValid) return response(400)
 
-    const novaTransacao = { valor, descricao, tipo, id_cliente: id }
+    const cliente = await clienteRepo.loadCliente(id, sql)
 
-    const output = await sql.begin(async (tx) => {
-      const cliente = await clienteRepo.loadCliente(id, tx, { forUpdate: true })
+    if (!cliente) return response(404)
 
-      if (!cliente) return response(404)
+    const isDebito = tipo === 'd'
 
-      const { limite, saldo } = cliente
+    const valorIncrementado = isDebito ? -valor : valor
 
-      const isDebito = tipo === 'd'
+    const [result] = await sql`
+        update clientes
+        set saldo = saldo + ${valorIncrementado}
+        where 
+        id = ${id} and saldo + ${valorIncrementado * -1} <= limite
+        returning saldo
+    `
 
-      const novoSaldo = isDebito ? saldo - valor : saldo + valor
+    if (!result) return response(422)
 
-      if (isDebito && novoSaldo + limite < 0) return response(422)
+    await sql`insert into transacoes ${sql({
+      id_cliente: id,
+      valor,
+      descricao,
+      tipo,
+    })}`
 
-      await Promise.all([
-        clienteRepo.updateSaldoCliente({ clienteId: id, saldo: novoSaldo }, tx),
-        clienteRepo.createTransacao(novaTransacao, tx),
-      ])
-
-      return response(200, { limite, saldo: novoSaldo })
-    })
-
-    return output
+    return response(200, { limite: cliente.limite, saldo: result.saldo })
   })
 )
 
@@ -85,7 +86,9 @@ app.get(
       clienteRepo.loadCliente(id, sql),
     ])
 
-    if (!cliente) return response(404)
+    if (!cliente) {
+      return response(404)
+    }
 
     return response(200, {
       saldo: {
