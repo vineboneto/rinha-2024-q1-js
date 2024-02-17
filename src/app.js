@@ -1,106 +1,94 @@
 import express from 'express'
 import sql from './db.js'
-import * as clienteRepo from './cliente.db.js'
 
 const app = express()
-
 app.use(express.json())
 
-const safe = (fn) => async (req, res) => {
-  try {
-    return fn(req, res)
-  } catch (err) {
-    return res.status(500).json()
-  }
-}
+app.get('/', (req, res) => {
+  return res.json('Hello World')
+})
 
-app.get(
-  '/',
-  safe((req, res) => {
-    return res.json('Hello World')
-  })
-)
+app.post('/clientes/:id/transacoes', async (req, res) => {
+  const response = (status, body = undefined) => res.status(status).json(body)
 
-app.post(
-  '/clientes/:id/transacoes',
-  safe(async (req, res) => {
-    const response = (status, body = undefined) => res.status(status).json(body)
+  const input = { ...req.params, ...req.body }
 
-    const input = { ...req.params, ...req.body }
+  const id = Number(input?.id)
+  const valor = Number(input?.valor)
+  const descricao = input.descricao
+  const tipo = input.tipo
 
-    const id = Number(input?.id)
-    const valor = Number(input?.valor)
-    const descricao = input.descricao
-    const tipo = input.tipo
+  const isValid =
+    Number.isInteger(id) &&
+    Number.isInteger(valor) &&
+    valor > 0 &&
+    (tipo === 'c' || tipo === 'd') &&
+    typeof descricao === 'string' &&
+    descricao?.length >= 1 &&
+    descricao?.length <= 10
 
-    const isValid =
-      Number.isInteger(id) &&
-      Number.isInteger(valor) &&
-      valor > 0 &&
-      (tipo === 'c' || tipo === 'd') &&
-      typeof descricao === 'string' &&
-      descricao?.length >= 1 &&
-      descricao?.length <= 10
+  if (!isValid) return response(422)
 
-    if (!isValid) return response(422)
+  if (id > 5) return response(404)
 
-    const cliente = await clienteRepo.loadCliente(id, sql)
+  const valorIncrementado = tipo === 'd' ? -valor : valor
 
-    if (!cliente) return response(404)
-
-    const isDebito = tipo === 'd'
-
-    const valorIncrementado = isDebito ? -valor : valor
-
-    const [result] = await sql`
+  const [result] = await sql`
       update clientes
       set saldo = saldo + ${valorIncrementado}
       where id = ${id} and (saldo + ${valorIncrementado}) * -1 <= limite
       returning saldo, limite
     `
 
-    if (!result) {
-      return response(422)
-    }
+  if (!result) return response(422)
 
-    await sql`insert into transacoes ${sql({
-      id_cliente: id,
-      valor,
-      descricao,
-      tipo,
-    })}`
-
-    return response(200, { limite: cliente.limite, saldo: result.saldo })
+  sql`insert into transacoes ${sql({
+    id_cliente: id,
+    valor,
+    descricao,
+    tipo,
+  })}`.then(() => {
+    res.json({ saldo: result.saldo, limite: result.limite })
+    res.end()
   })
-)
+})
 
-app.get(
-  '/clientes/:id/extrato',
-  safe(async (req, res) => {
-    const response = (status, body = undefined) => res.status(status).json(body)
+app.get('/clientes/:id/extrato', async (req, res) => {
+  const response = (status, body = undefined) => res.status(status).json(body)
 
-    const id = Number(req.params?.id)
+  const id = Number(req.params?.id)
 
-    if (!Number.isInteger(id)) {
-      return response(422)
-    }
+  if (!Number.isInteger(id)) return response(422)
 
-    const [extrato, cliente] = await Promise.all([
-      clienteRepo.loadExtrato(id, sql),
-      clienteRepo.loadCliente(id, sql),
-    ])
+  if (id > 5) return response(404)
 
-    if (!cliente) return response(404)
+  Promise.all([
+    sql`
+        select limite, saldo from clientes where id = ${id} 
+      `,
+    sql`
+        select 
+          t.valor,
+          t.descricao,
+          t.tipo,
+          t.realizada_em
+        from transacoes t
+        where t.id_cliente = ${id}
+        order by t.realizada_em desc limit 10
+      `,
+  ]).then(([cliente, extrato]) => {
+    const [{ saldo, limite }] = cliente
 
-    return response(200, {
+    res.json({
       saldo: {
-        total: cliente.saldo,
-        limite: cliente.limite,
+        total: saldo,
+        limite: limite,
         data_extrato: new Date(),
       },
       ultimas_transacoes: extrato,
     })
+    res.end()
   })
-)
+})
 
 export default app

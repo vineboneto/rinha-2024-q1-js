@@ -1,16 +1,15 @@
--- ALTER SYSTEM SET max_connections = 1000;
 ALTER SYSTEM SET TIMEZONE TO 'UTC';
 
 CREATE TYPE tipo_movimentacao AS ENUM ('c', 'd');
 
-CREATE TABLE clientes (
+CREATE UNLOGGED TABLE clientes (
   id SERIAL PRIMARY KEY,
   nome VARCHAR(255) NOT NULL,
   saldo INTEGER NOT NULL DEFAULT 0,
   limite INTEGER NOT NULL
 );
 
-CREATE TABLE transacoes (
+CREATE UNLOGGED TABLE transacoes (
   id  SERIAL PRIMARY KEY,
   id_cliente INTEGER NOT NULL REFERENCES clientes(id),
   tipo tipo_movimentacao NOT NULL,

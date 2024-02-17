@@ -10,6 +10,7 @@ class ConnectionDB {
       database: 'rinha',
       password: '1234',
       username: 'postgres',
+      max: 4,
       host: process.env.DB_HOSTNAME || 'localhost',
     })
   }
