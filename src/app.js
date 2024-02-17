@@ -52,11 +52,10 @@ app.post(
     const valorIncrementado = isDebito ? -valor : valor
 
     const [result] = await sql`
-        update clientes
-        set saldo = saldo + ${valorIncrementado}
-        where 
-        id = ${id} and saldo + ${valorIncrementado * -1} <= limite
-        returning saldo
+      update clientes
+      set saldo = saldo + ${valorIncrementado}
+      where id = ${id} and saldo + ${valorIncrementado * -1} <= limite
+      returning saldo
     `
 
     if (!result) return response(422)
