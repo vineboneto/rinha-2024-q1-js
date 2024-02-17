@@ -1,22 +1,56 @@
-import express from 'express'
+import Fastify from 'fastify'
 import sql from './db.js'
 
-const app = express()
-app.use(express.json())
+const app = Fastify()
 
-app.get('/', (req, res) => {
-  return res.json('Hello World')
+class ClienteService {
+  /**
+   *
+   * @param {number} id
+   * @returns {Promise<boolean>}
+   */
+
+  #map = new Map()
+
+  constructor() {}
+
+  async find(id) {
+    const is404 = this.#map.get(id)
+
+    if (is404 === true) {
+      return false
+    }
+
+    if (is404 === undefined) {
+      let [cliente] = await sql`select id from clientes where id = ${id}`
+
+      if (!cliente) {
+        this.#map.set(id, true)
+        return false
+      }
+
+      this.#map.set(id, false)
+    }
+
+    return true
+  }
+}
+
+const cliente = new ClienteService()
+
+app.get('/', (req, reply) => {
+  return reply.send('Hello World')
 })
 
-app.post('/clientes/:id/transacoes', async (req, res) => {
-  const response = (status, body = undefined) => res.status(status).json(body)
+app.post('/clientes/:id/transacoes', async (req, reply) => {
+  const response = (status, body = undefined) => reply.status(status).send(body)
 
   const input = { ...req.params, ...req.body }
 
   const id = Number(input?.id)
   const valor = Number(input?.valor)
-  const descricao = input.descricao
-  const tipo = input.tipo
+  const descricao = input?.descricao
+  const tipo = input?.tipo
 
   const isValid =
     Number.isInteger(id) &&
@@ -29,40 +63,43 @@ app.post('/clientes/:id/transacoes', async (req, res) => {
 
   if (!isValid) return response(422)
 
-  if (id > 5) return response(404)
+  const exist = await cliente.find(id)
+
+  if (!exist) return response(404)
 
   const valorIncrementado = tipo === 'd' ? -valor : valor
 
   const [result] = await sql`
-      update clientes
-      set saldo = saldo + ${valorIncrementado}
-      where id = ${id} and (saldo + ${valorIncrementado}) * -1 <= limite
-      returning saldo, limite
-    `
+    update clientes
+    set saldo = saldo + ${valorIncrementado}
+    where id = ${id} and (saldo + ${valorIncrementado}) * -1 <= limite
+    returning saldo, limite
+  `
 
   if (!result) return response(422)
 
-  sql`insert into transacoes ${sql({
+  return sql`insert into transacoes ${sql({
     id_cliente: id,
     valor,
     descricao,
     tipo,
   })}`.then(() => {
-    res.json({ saldo: result.saldo, limite: result.limite })
-    res.end()
+    return reply.send({ saldo: result.saldo, limite: result.limite })
   })
 })
 
-app.get('/clientes/:id/extrato', async (req, res) => {
-  const response = (status, body = undefined) => res.status(status).json(body)
+app.get('/clientes/:id/extrato', async (req, reply) => {
+  const response = (status, body = undefined) => reply.status(status).send(body)
 
   const id = Number(req.params?.id)
 
   if (!Number.isInteger(id)) return response(422)
 
-  if (id > 5) return response(404)
+  const exist = await cliente.find(id)
 
-  Promise.all([
+  if (!exist) return response(404)
+
+  return Promise.all([
     sql`
         select limite, saldo from clientes where id = ${id} 
       `,
@@ -77,9 +114,11 @@ app.get('/clientes/:id/extrato', async (req, res) => {
         order by t.realizada_em desc limit 10
       `,
   ]).then(([cliente, extrato]) => {
+    if (!cliente) return response(404)
+
     const [{ saldo, limite }] = cliente
 
-    res.json({
+    return reply.send({
       saldo: {
         total: saldo,
         limite: limite,
@@ -87,7 +126,6 @@ app.get('/clientes/:id/extrato', async (req, res) => {
       },
       ultimas_transacoes: extrato,
     })
-    res.end()
   })
 })
 

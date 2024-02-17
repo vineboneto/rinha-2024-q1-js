@@ -3,14 +3,18 @@ import sql from './db.js'
 
 const port = process.env.PORT || 3000
 
-const server = app.listen(port, () => {
-  console.log(`Server is running at pid: ${process.pid}, address: ${port}...`)
+app.listen({
+  port: port,
+  listenTextResolver: (address) => {
+    console.log(
+      `Server is running at pid: ${process.pid}, address: ${address}...`
+    )
+  },
 })
-
 function gracefulShutdown() {
   console.log('Received kill signal, shutting down gracefully...')
   sql.end()
-  server.close(() => {
+  app.close(() => {
     process.exit(0)
   })
 }

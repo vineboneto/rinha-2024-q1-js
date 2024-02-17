@@ -47,7 +47,6 @@ services:
       - 8082:8082
   db:
     network_mode: host
-
     image: postgres:15
     environment:
       POSTGRES_USER: postgres

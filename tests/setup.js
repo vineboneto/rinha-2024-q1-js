@@ -1,10 +1,12 @@
 import supertest from 'supertest'
 import postgres from 'postgres'
-import { app } from '../src/app.js'
+import app from '../src/app.js'
 import sql from '../src/db.js'
 
-export function request() {
-  return supertest(app)
+export const request = {
+  exec: () => supertest(app.server),
+  close: () => app.close(),
+  ready: () => app.ready(),
 }
 
 export { sql }
