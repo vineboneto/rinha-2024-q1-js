@@ -1,7 +1,4 @@
 export class ClienteController {
-  /**
-   * @param {import('./cliente.repo').ClienteRepository} repo
-   **/
   #repo
 
   /**

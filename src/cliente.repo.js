@@ -1,8 +1,11 @@
 import sql from './db.js'
 
 export class ClienteRepository {
-  #map = null
+  #map
 
+  /**
+   * @param {Map<number, boolean>} map
+   **/
   constructor(map) {
     this.#map = map
   }
