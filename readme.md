@@ -11,7 +11,7 @@
 
 ## Repositório
 
-- [Link](https://github.com/vineboneto/rinha-backend-2024-q1)
+- [Link](https://github.com/vineboneto/rinha-2024-q1-js)
 
 ## Pré-requisitos
 
