@@ -1,5 +1,10 @@
 @api_url=http://localhost:3000
 
+### Hello World
+GET {{api_url}}/ HTTP/1.1
+content-type: application/json
+
+
 ### Extrato
 GET {{api_url}}/clientes/1/extrato HTTP/1.1
 content-type: application/json
@@ -10,6 +15,6 @@ content-type: application/json
 
 {
   "valor": 1,
-  "tipo": "d",
+  "tipo": "c",
   "descricao": "Pag. luz"
 }
