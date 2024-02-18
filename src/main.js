@@ -4,6 +4,7 @@ import sql from './db.js'
 const port = process.env.PORT || 3000
 
 app.listen({
+  host: '0.0.0.0',
   port: port,
   listenTextResolver: (address) => {
     console.log(
