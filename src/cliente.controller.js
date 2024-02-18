@@ -64,10 +64,10 @@ export class ClienteController {
 
     if (!exist) return reply.status(404).send()
 
-    return this.#repo.loadExtrato(id).then(([cliente, extrato]) => {
-      if (!cliente) return reply.status(404).send()
+    return this.#repo.loadExtrato(id).then(([result]) => {
+      if (!result) return reply.status(404).send()
 
-      const [{ saldo, limite }] = cliente
+      const { saldo, limite, extrato } = result
 
       const output = {
         saldo: {
@@ -75,7 +75,7 @@ export class ClienteController {
           limite: limite,
           data_extrato: new Date(),
         },
-        ultimas_transacoes: extrato,
+        ultimas_transacoes: extrato || [],
       }
 
       return reply.send(output)

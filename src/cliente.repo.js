@@ -51,21 +51,28 @@ export class ClienteRepository {
     return true
   }
 
+  /**
+   *
+   * @param {number} id
+   * @returns
+   */
   async loadExtrato(id) {
-    return Promise.all([
-      sql`
-        select limite, saldo from clientes where id = ${id} 
-      `,
-      sql`
-        select 
-          t.valor,
-          t.descricao,
-          t.tipo,
-          t.realizada_em
-        from transacoes t
-        where t.id_cliente = ${id}
-        order by t.realizada_em desc limit 10
-      `,
-    ])
+    return sql`
+      select
+        c.limite,
+        c.saldo,
+        (select json_agg(f.*) from (
+          select 
+                t.valor,
+                t.descricao,
+                t.tipo,
+                t.realizada_em
+              from transacoes t
+              where t.id_cliente = c.id
+              order by t.realizada_em desc limit 10
+            ) as f
+        ) as extrato
+      from clientes c where c.id = ${id}
+    `
   }
 }
