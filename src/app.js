@@ -3,7 +3,7 @@ import { ClienteRepository } from './cliente.repo.js'
 import { ClienteController } from './cliente.controller.js'
 
 const app = Fastify()
-const repo = new ClienteRepository(new Map())
+const repo = new ClienteRepository()
 const controller = new ClienteController(repo)
 
 app.get('/', (req, reply) => {

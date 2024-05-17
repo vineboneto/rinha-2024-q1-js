@@ -1,15 +1,6 @@
 import sql from './db.js'
 
 export class ClienteRepository {
-  #map
-
-  /**
-   * @param {Map<number, boolean>} map
-   **/
-  constructor(map) {
-    this.#map = map
-  }
-
   async createTransacao({ id, valor, descricao, tipo }) {
     return sql`insert into transacoes ${sql({
       id_cliente: id,
@@ -34,21 +25,10 @@ export class ClienteRepository {
    * @returns {Promise<boolean>}
    */
   async find(id) {
-    const is404 = this.#map.get(id)
+    let [cliente] = await sql`select id from clientes where id = ${id}`
 
-    if (is404 === true) {
+    if (!cliente) {
       return false
-    }
-
-    if (is404 === undefined) {
-      let [cliente] = await sql`select id from clientes where id = ${id}`
-
-      if (!cliente) {
-        this.#map.set(id, true)
-        return false
-      }
-
-      this.#map.set(id, false)
     }
 
     return true
