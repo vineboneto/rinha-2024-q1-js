@@ -1,4 +1,4 @@
-export function safeParseInt(v) {
+export function safeParseInt(v: any) {
   if (!v) return 0
 
   const int = parseInt(v)

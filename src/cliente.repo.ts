@@ -1,7 +1,17 @@
-import sql from './db.js'
+import sql from './db'
 
 export class ClienteRepository {
-  async createTransacao({ id, valor, descricao, tipo }) {
+  async createTransacao({
+    id,
+    valor,
+    descricao,
+    tipo,
+  }: {
+    id: number
+    valor: number
+    descricao: string
+    tipo: 'c' | 'd'
+  }) {
     return sql`insert into transacoes ${sql({
       id_cliente: id,
       valor,
@@ -10,7 +20,13 @@ export class ClienteRepository {
     })}`
   }
 
-  async updateSaldo({ valorIncrementado, id }) {
+  async updateSaldo({
+    valorIncrementado,
+    id,
+  }: {
+    valorIncrementado: number
+    id: number
+  }) {
     return sql`
       update clientes
       set saldo = saldo + ${valorIncrementado}
@@ -19,12 +35,7 @@ export class ClienteRepository {
     `
   }
 
-  /**
-   *
-   * @param {number} id
-   * @returns {Promise<boolean>}
-   */
-  async find(id) {
+  async find(id: number) {
     let [cliente] = await sql`select id from clientes where id = ${id}`
 
     if (!cliente) {
@@ -34,12 +45,7 @@ export class ClienteRepository {
     return true
   }
 
-  /**
-   *
-   * @param {number} id
-   * @returns
-   */
-  async loadExtrato(id) {
+  async loadExtrato(id: number) {
     return sql`
       select
         c.limite,

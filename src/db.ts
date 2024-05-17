@@ -1,8 +1,8 @@
 import postgres from 'postgres'
 
 class ConnectionDB {
-  static instance = null
-  static sql = null
+  static instance: ConnectionDB | null = null
+  static sql: postgres.Sql | null = null
 
   constructor() {
     ConnectionDB.sql = postgres({
@@ -15,9 +15,6 @@ class ConnectionDB {
     })
   }
 
-  /**
-   * @returns {ConnectionDB}
-   * */
   static self() {
     if (!ConnectionDB.instance) {
       ConnectionDB.instance = new ConnectionDB()
@@ -25,9 +22,6 @@ class ConnectionDB {
     return ConnectionDB.instance
   }
 
-  /**
-   * @returns {import('postgres').Sql}
-   * */
   sql() {
     if (!ConnectionDB.sql) throw new Error('ConnectionDB not initialized')
     return ConnectionDB.sql

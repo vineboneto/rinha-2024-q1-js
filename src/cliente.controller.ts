@@ -1,20 +1,20 @@
-export class ClienteController {
-  #repo
+import { FastifyReply, FastifyRequest } from 'fastify'
+import { ClienteRepository } from './cliente.repo'
 
-  /**
-   * @param {import('./cliente.repo').ClienteRepository} repo
-   **/
-  constructor(repo) {
+export class ClienteController {
+  #repo: ClienteRepository
+
+  constructor(repo: ClienteRepository) {
     this.#repo = repo
   }
 
-  /**
-   * @param {import('fastify').FastifyRequest} req
-   * @param {import('fastify').FastifyReply} reply
-   * @returns {Promise<import('fastify').FastifyReply>}
-   **/
-  async createTransacao(req, reply) {
-    const input = { ...req.params, ...req.body }
+  async createTransacao(req: FastifyRequest, reply: FastifyReply) {
+    const input = { ...(req.params || {}), ...(req.body || {}) } as Partial<{
+      id: number
+      valor: number
+      descricao: string
+      tipo: 'd' | 'c'
+    }>
 
     const id = Number(input?.id)
     const valor = Number(input?.valor)
@@ -47,13 +47,8 @@ export class ClienteController {
       .then(() => reply.send({ saldo: result.saldo, limite: result.limite }))
   }
 
-  /**
-   * @param {import('fastify').FastifyRequest} req
-   * @param {import('fastify').FastifyReply} reply
-   * @returns {Promise<import('fastify').FastifyReply>}
-   **/
-  async loadExtrato(req, reply) {
-    const id = Number(req.params?.id)
+  async loadExtrato(req: FastifyRequest, reply: FastifyReply) {
+    const id = Number((req.params as Partial<{ id: number }>)?.id)
 
     if (!Number.isInteger(id)) return reply.status(422).send()
 
